@@ -1,5 +1,7 @@
 package proto
 
+// State describes a specific state of the protocol.
+// TODO: this is very specific. should it be a detail in the protocol impl?
 type State int
 
 func (s State) String() string {

@@ -1,3 +1,7 @@
+// Package decode implements functions to deserialize minecraft protocol datatypes.
+// This only makes sense for types that aren't to change across minecraft versions, so packet decoding doesn't belong here.
+// If a datatype implemented here is subject to version change, consider making it an interface and implementing specific versions
+// in an appropriate protocol implementation package.
 package decode
 
 import (

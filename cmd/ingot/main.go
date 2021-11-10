@@ -1,41 +1,58 @@
 package main
 
 import (
-	"github.com/guglicap/ingotmc.v3/client"
-	"github.com/guglicap/ingotmc.v3/kaki"
-	"github.com/guglicap/ingotmc.v3/socket"
+	client2 "github.com/guglicap/ingotmc.v3/client"
+	kaki2 "github.com/guglicap/ingotmc.v3/cmd/ingot/internal/kaki"
+	"github.com/guglicap/ingotmc.v3/cmd/ingot/internal/simulation"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
-func main() {
-	s, _ := net.Listen("tcp", ":25565")
+type server struct {
+	l    net.Listener
+	quit chan os.Signal
+	sim  *simulation.Simulation
+}
+
+func (s *server) run() {
+	clients := s.acceptClients()
+loop:
+	for {
+		select {
+		case <-s.quit:
+			break loop
+		case c := <-clients:
+			sock := client2.NewSocket(c)
+			p := kaki2.New()
+			cl := client2.NewClient(sock, p, kaki2.OfflineAuthenticator)
+			go cl.Run()
+			go s.sim.SpawnPlayerFor(cl)
+		}
+	}
+	_ = s.l.Close()
+}
+
+func (s *server) acceptClients() chan net.Conn {
+	s.l, _ = net.Listen("tcp", ":25565")
 	clients := make(chan net.Conn)
 	go func() {
 		defer close(clients)
 		for {
-			c, err := s.Accept()
+			c, err := s.l.Accept()
 			if err != nil {
 				return
 			}
 			clients <- c
 		}
 	}()
-	stop := make(chan os.Signal)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
-loop:
-	for {
-		select {
-		case <-stop:
-			break loop
-		case c := <-clients:
-			s := socket.NewSocket(c)
-			p := kaki.New()
-			cl := client.NewClient(s, p)
-			go cl.Run()
-		}
-	}
-	_ = s.Close()
+	return clients
+}
+
+func main() {
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	server := server{quit: quit, sim: simulation.New()}
+	server.run()
 }

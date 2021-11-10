@@ -1,68 +1,102 @@
+// Package client handles the specifics of connections with minecraft clients.
+// It doesn't directly deal with packet encoding / decoding, which was left to implement via the Protocol interface
+// but rather implements the logic for authentication, event dispatch to the simulation and event processing.
+//
 package client
 
 import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/guglicap/ingotmc.v3/client/callback"
+	"github.com/guglicap/ingotmc.v3/action"
+	"github.com/guglicap/ingotmc.v3/event"
 	"github.com/guglicap/ingotmc.v3/proto"
-	"github.com/guglicap/ingotmc.v3/socket"
 	"log"
 	"os"
 )
 
-type ClientID uuid.UUID
+// ID is an identifier associate with a unique client.
+type ID uuid.UUID
 
-func (c ClientID) String() string {
+func (c ID) String() string {
 	return uuid.UUID(c).String()
 }
 
-// Client glues everything together.
-// It receives packets from the socket, decodes them via the protocol and dispatches the event to the simulation.
-// It receives callbacks from the protocol / simulation encodes them through the protocol and sends them to the socket.
+// Client handles the logic of client authentication, player creation, event dispatch and event processing.
+// Clients have two separate Action channels: the first one, which it gets directly from protocol is checked
+// to see if actions are generated that should be processed internally, i.e authentication / encryption or anything
+// else connection related. Otherwise, the actions are forwarded to the simulation via another channel, which the simulation
+// can access via Actions()
 type Client struct {
-	ID    ClientID
+	id    ID
 	log   *log.Logger
 	ctx   context.Context
 	close context.CancelFunc
 
-	socket *socket.Socket //NOTE: should probably make it an interface
-	proto  Protocol
+	socket *Socket //NOTE: should probably make it an interface
+	proto  proto.Protocol
+	auth   proto.Authenticator
+
+	// these are kept here to allow handling at shutdown
+	cbound chan<- []byte // packets to client
+	sbound <-chan []byte // packets from client
+
+	actions chan action.Action // simulation bound actions
 }
 
-func NewClient(socket *socket.Socket, protocol Protocol) *Client {
+// NewClient creates a new client.
+// TODO: better defaults, functional parameters
+func NewClient(socket *Socket, protocol proto.Protocol, authenticator proto.Authenticator) *Client {
 	c := &Client{
-		ID: ClientID(uuid.New()),
+		id: ID(uuid.New()),
 
-		socket: socket,
-		proto:  protocol,
+		socket:  socket,
+		proto:   protocol,
+		auth:    authenticator,
+		actions: make(chan action.Action),
 	}
 	c.ctx = context.Background()
-	c.ctx = context.WithValue(c.ctx, "client_id", c.ID)
+	c.ctx = context.WithValue(c.ctx, "client_id", c.id)
 	c.ctx, c.close = context.WithCancel(c.ctx)
-	c.log = log.New(os.Stdout, fmt.Sprintf("client %s: ", c.ID), log.LstdFlags | log.Lmsgprefix)
+	c.log = log.New(os.Stdout, fmt.Sprintf("client %s: ", c.id), log.LstdFlags|log.Lmsgprefix)
 	return c
 }
 
+// Run starts the client.
+// TODO: separate internal event processing and sim connection logic (channel setup rn), maybe rethink it
 func (c *Client) Run() {
-	sbound, cbound := c.socket.Start(c.ctx)
-	events := c.proto.Process(c.ctx, sbound)
+	c.sbound, c.cbound = c.socket.Start(c.ctx)
+	events := c.proto.Process(c.ctx, c.sbound)
 loop:
-	for ev := range events {
-		switch t := ev.(type) {
-		case proto.EventFatalError:
-			dc := callback.Disconnect{t.Err.Error()}
-			pkt, err := c.proto.PacketFor(dc)
-			if err == nil {
-				cbound <- pkt
-			}
+	for {
+		select {
+		case <-c.ctx.Done():
 			break loop
-		case proto.EventError:
-			c.log.Println(t)
-		default:
-			fmt.Println("unknown event type (??)")
+
+		case e, ok := <-events:
+			if !ok {
+				break loop
+			}
+			c.handle(e)
 		}
 	}
 	c.close()
 	c.log.Println("goodbye")
+}
+
+// ProcessEvent implements the simulation.Client interface.
+// It asks the protocol to generate a packet for the event v and sends it to the client.
+func (c *Client) ProcessEvent(v event.Event) error {
+	pkt, err := c.proto.PacketFor(v)
+	if err != nil {
+		return err
+	}
+	c.cbound <- pkt
+	return nil
+}
+
+// Actions implements the simulation.Client interface.
+// Returns a chan of outbound actions, i.e. actions that the client shouldn't process internally.
+func (c *Client) Actions() <-chan action.Action {
+	return c.actions
 }

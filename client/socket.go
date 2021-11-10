@@ -1,4 +1,4 @@
-package socket
+package client
 
 import (
 	"context"
@@ -21,7 +21,7 @@ type recvFunc func(io.Reader) ([]byte, error)
 // TODO: compression
 type Socket struct {
 	conn net.Conn
-	log *log.Logger
+	log  *log.Logger
 
 	send         sendFunc
 	clientbound  chan []byte
@@ -38,7 +38,7 @@ func NewSocket(conn net.Conn) *Socket {
 	s := &Socket{
 		conn:         conn,
 		isClosed:     false,
-		log:          log.New(os.Stdout, "socket: ", log.LstdFlags | log.Lmsgprefix),
+		log:          log.New(os.Stdout, "socket: ", log.LstdFlags|log.Lmsgprefix),
 		send:         sendPacket,
 		writeTimeout: defaultWriteTimeout,
 		serverbound:  make(chan []byte),

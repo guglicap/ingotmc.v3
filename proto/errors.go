@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-var ErrorUnsupportedCallback = fmt.Errorf("callback not supported")
+var ErrorUnsupportedCallback = fmt.Errorf("event not supported")
 
 func ErrorUnsupportedState(s State) EventFatalError {
 	return EventFatalError{
@@ -37,5 +37,3 @@ type EventError struct {
 func (ee EventError) Error() string {
 	return "protocol error: " + ee.Err.Error()
 }
-
-

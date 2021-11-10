@@ -2,6 +2,7 @@ package kaki
 
 import (
 	"bytes"
+	"github.com/guglicap/ingotmc.v3/action"
 	"github.com/guglicap/ingotmc.v3/proto"
 	"github.com/guglicap/ingotmc.v3/proto/decode"
 )
@@ -24,5 +25,5 @@ func handleLoginStart(k *kakiClient, pkt []byte) {
 		k.dispatch(proto.EventFatalError{err})
 		return
 	}
-	k.log.Println("hello", name)
+	k.dispatch(action.NewConnection{name})
 }

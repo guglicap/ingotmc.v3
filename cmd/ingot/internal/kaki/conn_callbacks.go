@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/guglicap/ingotmc.v3/client/callback"
+	"github.com/guglicap/ingotmc.v3/event"
 	"github.com/guglicap/ingotmc.v3/proto"
 	"github.com/guglicap/ingotmc.v3/proto/encode"
 )
 
-func encodeDisconnect(k *kakiClient, dc callback.Disconnect) ([]byte, error) {
+func encodeDisconnect(k *kakiClient, dc event.Disconnect) ([]byte, error) {
 	pkt := &bytes.Buffer{}
 	var id int32
 	switch k.currentState {
@@ -27,7 +27,7 @@ func encodeDisconnect(k *kakiClient, dc callback.Disconnect) ([]byte, error) {
 	pktReason := struct {
 		Text string `json:"text"`
 	}{
-		dc.Reason,
+		dc.Reason.Error(),
 	}
 	reason, err := json.Marshal(pktReason)
 	if err != nil {

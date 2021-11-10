@@ -1,4 +1,5 @@
 package encode
+
 //
 //import (
 //	"bytes"
@@ -12,18 +13,18 @@ package encode
 //)
 //
 //type chunkEncoder struct {
-//	c mc.Chunk
+//	c mc.GetChunk
 //}
 //
 //func (c chunkEncoder) EncodeMC(w io.Writer) error {
 //	return ChunkData(c.c, w)
 //}
 //
-//func Chunk(chunk mc.Chunk) Encoder {
+//func GetChunk(chunk mc.GetChunk) Encoder {
 //	return chunkEncoder{chunk}
 //}
 //
-//func ChunkBitmask(chunk mc.Chunk) EncodeFunc {
+//func ChunkBitmask(chunk mc.GetChunk) EncodeFunc {
 //	f := func(w io.Writer) error {
 //		bitMask := int32(0x0000)
 //		for i, s := range chunk.Sections {
@@ -59,7 +60,7 @@ package encode
 //	}
 //}
 //
-//func ChunkData(c mc.Chunk, w io.Writer) error {
+//func ChunkData(c mc.GetChunk, w io.Writer) error {
 //	chunkData := bytes.NewBuffer([]byte{})
 //	for _, s := range c.Sections {
 //		if s == nil {

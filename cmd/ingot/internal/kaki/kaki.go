@@ -3,7 +3,7 @@ package kaki
 import (
 	"bytes"
 	"context"
-	"github.com/guglicap/ingotmc.v3/client/callback"
+	"github.com/guglicap/ingotmc.v3/action"
 	"github.com/guglicap/ingotmc.v3/event"
 	"github.com/guglicap/ingotmc.v3/proto"
 	"github.com/guglicap/ingotmc.v3/proto/decode"
@@ -17,14 +17,14 @@ const kakiVersion = 578
 type kakiClient struct {
 	log          *log.Logger
 	currentState proto.State
-	events       chan event.Event
+	events       chan action.Action
 }
 
 func New() *kakiClient {
 	return &kakiClient{
 		log:          log.New(os.Stdout, "kaki: ", log.LstdFlags|log.Lmsgprefix),
 		currentState: proto.Handshaking,
-		events:       make(chan event.Event),
+		events:       make(chan action.Action),
 	}
 }
 
@@ -32,7 +32,7 @@ func (k *kakiClient) stop() {
 	close(k.events)
 }
 
-func (k *kakiClient) Process(ctx context.Context, packets <-chan []byte) chan event.Event {
+func (k *kakiClient) Process(ctx context.Context, packets <-chan []byte) chan action.Action {
 	go func() {
 	loop:
 		for {
@@ -59,16 +59,18 @@ func (k *kakiClient) Process(ctx context.Context, packets <-chan []byte) chan ev
 	return k.events
 }
 
-func (k *kakiClient) PacketFor(c callback.Callback) ([]byte, error) {
+func (k *kakiClient) PacketFor(c event.Event) ([]byte, error) {
 	switch cback := c.(type) {
-	case callback.Disconnect:
+	case event.Disconnect:
 		return encodeDisconnect(k, cback)
+	case event.AuthSuccess:
+		return encodeAuthSuccess(k, cback)
 	default:
 		return nil, proto.ErrorUnsupportedCallback
 	}
 }
 
-func (k *kakiClient) dispatch(e event.Event) {
+func (k *kakiClient) dispatch(e action.Action) {
 	k.events <- e
 }
 

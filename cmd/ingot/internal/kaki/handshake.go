@@ -25,14 +25,14 @@ func handleHandshake(k *kakiClient, pkt []byte) {
 	br := bytes.NewReader(pkt)
 	version, err := decode.VarInt(br)
 	if err != nil {
-		k.dispatch(proto.EventFatalError{err })
+		k.dispatch(proto.EventFatalError{err})
 		return
 	}
 	decode.String(br) // server addr, ignored
 	decode.UShort(br) // server port, ignored
 	nextState, err := decode.VarInt(br)
 	if err != nil {
-		k.dispatch(proto.EventFatalError{err })
+		k.dispatch(proto.EventFatalError{err})
 		return
 	}
 	k.currentState = proto.State(nextState)
