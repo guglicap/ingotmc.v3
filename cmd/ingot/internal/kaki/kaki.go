@@ -17,7 +17,7 @@ type kakiClient struct {
 	log          *log.Logger
 	currentState proto.State
 	world        proto.WorldProvider
-	palette      proto.GlobalPalette
+	chunkSecSerializer
 }
 
 func New() *kakiClient {
@@ -42,6 +42,8 @@ func (k *kakiClient) PacketFor(c event.Event) ([]byte, error) {
 		return encodeDisconnect(k, cback)
 	case event.AuthSuccess:
 		return encodeAuthSuccess(k, cback)
+	case event.ChunkLoad:
+		return encodeChunkLoad(k, cback)
 	default:
 		return nil, proto.ErrorUnsupportedCallback
 	}

@@ -66,10 +66,11 @@ func NewClient(socket *Socket, protocol proto.Protocol, authenticator proto.Auth
 // TODO: separate internal event processing and sim connection logic (channel setup rn), maybe rethink it
 func (c *Client) Run() {
 	c.sbound, c.cbound = c.socket.Start(c.ctx)
-	c.actions = c.filterActions()
+	c.actions = c.processActions()
 }
 
-func (c *Client) filterActions() chan action.Action {
+func (c *Client) processActions() chan action.Action {
+	simboundActions := make(chan action.Action)
 	process := func() {
 	loop:
 		for {
@@ -83,11 +84,11 @@ func (c *Client) filterActions() chan action.Action {
 				c.handlePacket(pkt)
 			}
 		}
+		close(simboundActions)
 		close(c.cbound)
 		c.close()
 		c.log.Println("goodbye")
 	}
-	simboundActions := make(chan action.Action)
 	go process()
 	return simboundActions
 }
@@ -97,6 +98,9 @@ func (c *Client) handlePacket(pkt []byte) {
 	act, err := c.proto.ActionFor(pkt)
 	if err != nil {
 		c.log.Println(fmt.Errorf("error getting action: %e", err))
+		return
+	}
+	if act == nil { // action was handled internally by protocol
 		return
 	}
 	c.handle(act)

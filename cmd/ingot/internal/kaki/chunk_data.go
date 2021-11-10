@@ -9,10 +9,8 @@ import (
 	"github.com/guglicap/ingotmc.v3/proto"
 	"github.com/guglicap/ingotmc.v3/proto/encode"
 	"github.com/guglicap/ingotmc.v3/world"
-	"github.com/guglicap/ingotmc.v3/world/block"
 	"github.com/ingotmc/nbt"
 	"io"
-	"math"
 )
 
 const (
@@ -77,7 +75,7 @@ func encodeChunkLoad(k *kakiClient, cL event.ChunkLoad) (pkt []byte, err error) 
 		if chData[i] == nil {
 			continue
 		}
-		serializeSafe(serializeChunkSection(k.palette, *chData[i], data))
+		k.chunkSecSerializer.serialize(chData[i], data)
 	}
 
 	serializeSafe(encode.VarInt(int32(data.Len()), buf)) // data size
@@ -108,82 +106,83 @@ func serializeHeightMap(hMap world.HeightMap) (data []int64, err error) {
 	return
 }
 
-func serializeChunkSection(gp proto.GlobalPalette, cs proto.ChunkSection, w io.Writer) error {
-	nonAir := 0
-	unique := 0
-	palette := make(map[block.Block]int)
-	for _, b := range cs {
-		if b != block.Air {
-			nonAir++
-		}
-		if _, ok := palette[b]; ok {
-			continue // if block already in palette
-		}
-		// this is an hack! we're setting an int for each block
-		// when we initialize the actual palette array, this will be the index of this block
-		// this works because unique starts at 0 and increases every time there's a new block state
-		palette[b] = unique
-		unique++
-	}
-	bpb := int(math.Ceil(math.Log2(float64(unique))))
-	if bpb > 8 {
-		return serializeChunkSectionDirect(nonAir, gp, cs, w)
-	}
-
-	pktPalette := make([]int32, unique)
-	for bl, idx := range palette {
-		// hack as above
-		pktPalette[idx] = gp.IDFor(bl)
-	}
-
-	serializeSafe(encode.Short(int16(nonAir), w))
-	serializeSafe(encode.UByte(uint8(bpb), w))
-	serializeSafe(encode.VarInt(int32(len(pktPalette)), w))
-	for _, v := range pktPalette {
-		serializeSafe(encode.VarInt(v, w))
-	}
-	numOfLongs := bpb * 4096 / 8
-
-	bitstreamBuf := make([]byte, 0, numOfLongs*8)
-	bw := bitstream.NewWriter(bytes.NewBuffer(bitstreamBuf))
-	for _, bl := range cs {
-		idx := palette[bl]
-		serializeSafe(bw.WriteNBitsOfUint32BE(uint8(bpb), uint32(idx)))
-	}
-	serializeSafe(bw.Flush())
-
-	serializeSafe(encode.VarInt(int32(numOfLongs), w))
-	for i := 0; i < numOfLongs; i++ {
-		serializeSafe(
-			encode.Long(
-				int64(binary.BigEndian.Uint64(bitstreamBuf[i*8:(i+1)*8])),
-				w,
-			),
-		)
-	}
-	return nil
-}
-
-func serializeChunkSectionDirect(nonAir int, palette proto.GlobalPalette, cs proto.ChunkSection, w io.Writer) error {
-	serializeSafe(encode.Short(int16(nonAir), w))
-	bpb := palette.BitsPerBlock()
-	serializeSafe(encode.UByte(bpb, w))
-	numOfLongs := int(bpb) * 4096 / 64
-	bitstreamBuf := make([]byte, 0, numOfLongs*8)
-	bw := bitstream.NewWriter(bytes.NewBuffer(bitstreamBuf))
-	for _, bl := range cs {
-		id := palette.IDFor(bl)
-		serializeSafe(bw.WriteNBitsOfUint32BE(bpb, uint32(id)))
-	}
-	serializeSafe(bw.Flush())
-	serializeSafe(encode.VarInt(int32(numOfLongs), w))
-	for i := 0; i < numOfLongs; i++ {
-		serializeSafe(
-			encode.Long(
-				int64(binary.BigEndian.Uint64(bitstreamBuf[i*8:(i+1)*8])),
-				w,
-			),
-		)
-	}
-	return nil
-}
+//
+//func serializeChunkSection(gp proto.GlobalPalette, cs proto.ChunkSection, w io.Writer) error {
+//	nonAir := 0
+//	unique := 0
+//	palette := make(map[block.Block]int)
+//	for _, b := range cs {
+//		if b != block.Air {
+//			nonAir++
+//		}
+//		if _, ok := palette[b]; ok {
+//			continue // if block already in palette
+//		}
+//		// this is an hack! we're setting an int for each block
+//		// when we initialize the actual palette array, this will be the index of this block
+//		// this works because unique starts at 0 and increases every time there's a new block state
+//		palette[b] = unique
+//		unique++
+//	}
+//	bpb := int(math.Ceil(math.Log2(float64(unique))))
+//	if bpb > 8 {
+//		return serializeChunkSectionDirect(nonAir, gp, cs, w)
+//	}
+//
+//	pktPalette := make([]int32, unique)
+//	for bl, idx := range palette {
+//		// hack as above
+//		pktPalette[idx] = gp.IDFor(bl)
+//	}
+//
+//	serializeSafe(encode.Short(int16(nonAir), w))
+//	serializeSafe(encode.UByte(uint8(bpb), w))
+//	serializeSafe(encode.VarInt(int32(len(pktPalette)), w))
+//	for _, v := range pktPalette {
+//		serializeSafe(encode.VarInt(v, w))
+//	}
+//	numOfLongs := bpb * 4096 / 8
+//
+//	bitstreamBuf := make([]byte, 0, numOfLongs*8)
+//	bw := bitstream.NewWriter(bytes.NewBuffer(bitstreamBuf))
+//	for _, bl := range cs {
+//		idx := palette[bl]
+//		serializeSafe(bw.WriteNBitsOfUint32BE(uint8(bpb), uint32(idx)))
+//	}
+//	serializeSafe(bw.Flush())
+//
+//	serializeSafe(encode.VarInt(int32(numOfLongs), w))
+//	for i := 0; i < numOfLongs; i++ {
+//		serializeSafe(
+//			encode.Long(
+//				int64(binary.BigEndian.Uint64(bitstreamBuf[i*8:(i+1)*8])),
+//				w,
+//			),
+//		)
+//	}
+//	return nil
+//}
+//
+//func serializeChunkSectionDirect(nonAir int, palette proto.GlobalPalette, cs proto.ChunkSection, w io.Writer) error {
+//	serializeSafe(encode.Short(int16(nonAir), w))
+//	bpb := palette.BitsPerBlock()
+//	serializeSafe(encode.UByte(bpb, w))
+//	numOfLongs := int(bpb) * 4096 / 64
+//	bitstreamBuf := make([]byte, 0, numOfLongs*8)
+//	bw := bitstream.NewWriter(bytes.NewBuffer(bitstreamBuf))
+//	for _, bl := range cs {
+//		id := palette.IDFor(bl)
+//		serializeSafe(bw.WriteNBitsOfUint32BE(bpb, uint32(id)))
+//	}
+//	serializeSafe(bw.Flush())
+//	serializeSafe(encode.VarInt(int32(numOfLongs), w))
+//	for i := 0; i < numOfLongs; i++ {
+//		serializeSafe(
+//			encode.Long(
+//				int64(binary.BigEndian.Uint64(bitstreamBuf[i*8:(i+1)*8])),
+//				w,
+//			),
+//		)
+//	}
+//	return nil
+//}
