@@ -81,7 +81,10 @@ loop:
 		case <-socketContext.Done():
 			s.log.Println("wWorker: stopping from context")
 			break loop
-		case pkt := <-s.clientbound:
+		case pkt, ok := <-s.clientbound:
+			if !ok {
+				break loop
+			}
 			s.conn.SetWriteDeadline(time.Now().Add(s.writeTimeout)) // NOTE: handle error
 			err := s.send(pkt, s.conn)
 			if err != nil {

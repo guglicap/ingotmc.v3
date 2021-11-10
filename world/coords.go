@@ -22,21 +22,21 @@ func (v vector3) Add(o vector3) vector3 {
 // Coords is an (x,y,z) float vector.
 type Coords vector3
 
-// ToChunkCoords returns the ChunkCoords of the chunk enclosing this position in space.
-func (c Coords) ToChunkCoords() ChunkCoords {
+// GetChunkCoords returns the ChunkCoords of the chunk enclosing this position in space.
+func (c Coords) GetChunkCoords() ChunkCoords {
 	return ChunkCoords{
-		int64(c.X) >> 4,
-		int64(c.Z) >> 4,
+		int32(c.X) >> 4,
+		int32(c.Z) >> 4,
 	}
 }
 
 // BlockCoords is an (x,y,z) int64 vector.
 type BlockCoords struct {
-	X, Y, Z int64
+	X, Y, Z int32
 }
 
-// ToChunkCoords returns the ChunkCoords for the chunk the block is placed at.
-func (bc BlockCoords) ToChunkCoords() ChunkCoords {
+// GetChunkCoords returns the ChunkCoords for the chunk the block is placed at.
+func (bc BlockCoords) GetChunkCoords() ChunkCoords {
 	return ChunkCoords{
 		X: bc.X >> 4,
 		Z: bc.Z >> 4,
@@ -45,7 +45,7 @@ func (bc BlockCoords) ToChunkCoords() ChunkCoords {
 
 // ChunkCoords is an (x,z) vector.
 type ChunkCoords struct {
-	X, Z int64
+	X, Z int32
 }
 
 // RadialDistance returns the distance to another chunk.
@@ -62,7 +62,7 @@ func (cCoords ChunkCoords) RadialDistance(oc ChunkCoords) int {
 }
 
 // WithinRadialDistance returns all ChunkCoords within a radius r of this one.
-func (cCoords ChunkCoords) WithinRadialDistance(r int64) (c []ChunkCoords) {
+func (cCoords ChunkCoords) WithinRadialDistance(r int32) (c []ChunkCoords) {
 	c = make([]ChunkCoords, 0, 2*r+1)
 	for z := cCoords.Z - r; z <= cCoords.X+r; z++ {
 		for x := cCoords.X - r; x <= cCoords.X+r; z++ {

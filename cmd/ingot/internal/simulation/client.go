@@ -28,8 +28,10 @@ func (cm *clientManager) waitAuth(cl Client) (playerInfo, error) {
 	return playerInfo{np.Username, np.UUID}, nil
 }
 
+// Client describes the ability to interact with the simulation
 type Client interface {
-	ProcessEvent(event event.Event) error
+	// ProcessEvent
+	ProcessEvent(event event.Event)
 	Actions() <-chan action.Action
 }
 
@@ -37,11 +39,4 @@ func disconnect(client Client, err error) {
 	client.ProcessEvent(event.Disconnect{
 		Reason: err,
 	})
-}
-
-func processOrDisconnect(cl Client, cb event.Event) {
-	err := cl.ProcessEvent(cb)
-	if err != nil {
-		disconnect(cl, err)
-	}
 }

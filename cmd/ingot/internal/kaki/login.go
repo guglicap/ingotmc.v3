@@ -7,23 +7,22 @@ import (
 	"github.com/guglicap/ingotmc.v3/proto/decode"
 )
 
-func loginFuncFor(id int32) handlerFunc {
+func loginFuncFor(id int32) decodeFunc {
 	switch id {
 	case 0x00:
 		return handleLoginStart
 	default:
-		return func(k *kakiClient, _ []byte) {
-			k.events <- proto.ErrorUnsupportedPacket(proto.Login, id)
+		return func(k *kakiClient, _ []byte) (action.Action, error) {
+			return nil, proto.ErrorUnsupportedPacket(proto.Login, id)
 		}
 	}
 }
 
-func handleLoginStart(k *kakiClient, pkt []byte) {
+func handleLoginStart(k *kakiClient, pkt []byte) (action.Action, error) {
 	br := bytes.NewReader(pkt)
 	name, err := decode.String(br)
 	if err != nil {
-		k.dispatch(proto.EventFatalError{err})
-		return
+		return nil, err
 	}
-	k.dispatch(action.NewConnection{name})
+	return action.NewConnection{Username: name}, nil
 }

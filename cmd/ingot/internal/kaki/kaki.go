@@ -2,7 +2,6 @@ package kaki
 
 import (
 	"bytes"
-	"context"
 	"github.com/guglicap/ingotmc.v3/action"
 	"github.com/guglicap/ingotmc.v3/event"
 	"github.com/guglicap/ingotmc.v3/proto"
@@ -17,46 +16,24 @@ const kakiVersion = 578
 type kakiClient struct {
 	log          *log.Logger
 	currentState proto.State
-	events       chan action.Action
+	world        proto.WorldProvider
+	palette      proto.GlobalPalette
 }
 
 func New() *kakiClient {
 	return &kakiClient{
 		log:          log.New(os.Stdout, "kaki: ", log.LstdFlags|log.Lmsgprefix),
 		currentState: proto.Handshaking,
-		events:       make(chan action.Action),
 	}
 }
 
-func (k *kakiClient) stop() {
-	close(k.events)
-}
-
-func (k *kakiClient) Process(ctx context.Context, packets <-chan []byte) chan action.Action {
-	go func() {
-	loop:
-		for {
-			select {
-			case <-ctx.Done():
-				k.log.Printf("client %s: Process stopping from context\n", ctx.Value("client_id"))
-				break loop
-			case pkt, ok := <-packets:
-				if !ok {
-					k.log.Printf("client %s: Process stopping on packets chan close\n", ctx.Value("client_id"))
-					break loop
-				}
-				id, data, err := destructurePacket(pkt)
-				if err != nil {
-					k.dispatch(proto.EventFatalError{err})
-				}
-				f := handlerFuncFor(k.currentState, id)
-				f(k, data)
-			}
-		}
-		k.stop()
-		k.log.Println("goodbye")
-	}()
-	return k.events
+func (k *kakiClient) ActionFor(pkt []byte) (action.Action, error) {
+	id, data, err := destructurePacket(pkt)
+	if err != nil {
+		return nil, err
+	}
+	f := decodeFuncFor(k.currentState, id)
+	return f(k, data)
 }
 
 func (k *kakiClient) PacketFor(c event.Event) ([]byte, error) {
@@ -70,10 +47,6 @@ func (k *kakiClient) PacketFor(c event.Event) ([]byte, error) {
 	}
 }
 
-func (k *kakiClient) dispatch(e action.Action) {
-	k.events <- e
-}
-
 func destructurePacket(pkt []byte) (id int32, data []byte, err error) {
 	br := bytes.NewReader(pkt)
 	id, err = decode.VarInt(br)
@@ -83,4 +56,19 @@ func destructurePacket(pkt []byte) (id int32, data []byte, err error) {
 	dataidx := len(pkt) - br.Len()
 	data = pkt[dataidx:]
 	return
+}
+
+func (k *kakiClient) assertState(state proto.State, others ...proto.State) bool {
+	match := false
+	match = state == k.currentState
+	if match {
+		return true
+	}
+	for _, s := range others {
+		if match {
+			break
+		}
+		match = s == k.currentState
+	}
+	return match
 }

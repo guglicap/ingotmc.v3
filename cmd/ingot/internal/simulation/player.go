@@ -4,6 +4,7 @@ import (
 	"github.com/guglicap/ingotmc.v3/event"
 	"github.com/guglicap/ingotmc.v3/mc"
 	"github.com/guglicap/ingotmc.v3/world"
+	"sync"
 )
 
 type Player struct {
@@ -24,16 +25,20 @@ func (sim *Simulation) SpawnPlayerFor(cl Client) {
 		return
 	}
 	player := sim.LoadPlayer(plInfo, cl)
-	chunkCoords := player.Pos.ToChunkCoords().WithinRadialDistance(3)
-	for _, c := range chunkCoords {
-		sim.world.LoadChunk(c)
-		ev := event.ChunkLoad{Coords: c}
+	chunkCoords := player.Pos.GetChunkCoords().WithinRadialDistance(3)
+	wg := sync.WaitGroup{}
+	loadChunk := func(c world.ChunkCoords, cl Client) {
+		wg.Add(1)
+		defer wg.Done()
+		sim.world.LoadChunk(player.Dim, c)
+		ev := event.ChunkLoad{Dimension: player.Dim, Coords: c}
 		ev.SetTriggeredBy(player.Name)
-		err = cl.ProcessEvent(ev)
-		if err != nil {
-			// TODO: logging
-		}
+		cl.ProcessEvent(ev)
 	}
+	for _, c := range chunkCoords {
+		go loadChunk(c, cl)
+	}
+	wg.Wait()
 }
 
 func (sim *Simulation) LoadPlayer(info playerInfo, cl Client) *Player {

@@ -6,5 +6,6 @@ import "github.com/guglicap/ingotmc.v3/world"
 // Should be processed by sending the chunk data to the client.
 type ChunkLoad struct {
 	defaultEvent
-	Coords world.ChunkCoords
+	Dimension world.Dimension
+	Coords    world.ChunkCoords
 }

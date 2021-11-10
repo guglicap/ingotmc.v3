@@ -66,22 +66,40 @@ func NewClient(socket *Socket, protocol proto.Protocol, authenticator proto.Auth
 // TODO: separate internal event processing and sim connection logic (channel setup rn), maybe rethink it
 func (c *Client) Run() {
 	c.sbound, c.cbound = c.socket.Start(c.ctx)
-	events := c.proto.Process(c.ctx, c.sbound)
-loop:
-	for {
-		select {
-		case <-c.ctx.Done():
-			break loop
+	c.actions = c.filterActions()
+}
 
-		case e, ok := <-events:
-			if !ok {
+func (c *Client) filterActions() chan action.Action {
+	process := func() {
+	loop:
+		for {
+			select {
+			case <-c.ctx.Done():
 				break loop
+			case pkt, ok := <-c.sbound:
+				if !ok {
+					break loop
+				}
+				c.handlePacket(pkt)
 			}
-			c.handle(e)
 		}
+		close(c.cbound)
+		c.close()
+		c.log.Println("goodbye")
 	}
-	c.close()
-	c.log.Println("goodbye")
+	simboundActions := make(chan action.Action)
+	go process()
+	return simboundActions
+}
+
+// handlePacket asks protocol to decode a packets and forwards action handling to an appropriate function
+func (c *Client) handlePacket(pkt []byte) {
+	act, err := c.proto.ActionFor(pkt)
+	if err != nil {
+		c.log.Println(fmt.Errorf("error getting action: %e", err))
+		return
+	}
+	c.handle(act)
 }
 
 // ProcessEvent implements the simulation.Client interface.

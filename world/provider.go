@@ -1,12 +1,18 @@
 package world
 
-type Provider interface {
-	Dimension() Dimension
+import "github.com/guglicap/ingotmc.v3/world/block"
+
+type InfoProvider interface {
 	Level() Level
 	Seed() Seed
+}
 
-	BlockAt(bCoords BlockCoords) Block
-	SetBlockAt(cCoords ChunkCoords, block Block)
+type Provider interface {
+	InfoProvider
+
+	BlockAt(bCoords BlockCoords) block.Block
+	SetBlockAt(cCoords ChunkCoords, block block.Block)
 
 	ChunkProvider
+	ChunkLoader
 }
