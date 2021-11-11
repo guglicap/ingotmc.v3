@@ -26,6 +26,9 @@ func serializeSafe(err error) {
 }
 
 func recoverSerializeErr(p interface{}) error {
+	if p == nil {
+		return nil
+	}
 	if err, ok := p.(serializeError); ok {
 		return err
 	}
@@ -37,7 +40,7 @@ func encodeChunkLoad(k *kakiClient, cL event.ChunkLoad) (pkt []byte, err error) 
 		err = proto.ErrorUnsupportedPacket(k.currentState, play_ChunkData)
 		return
 	}
-	buf := &bytes.Buffer{}
+	buf := bytes.NewBuffer(pkt)
 	defer func() {
 		x := recover()
 		if x == nil {
@@ -46,6 +49,7 @@ func encodeChunkLoad(k *kakiClient, cL event.ChunkLoad) (pkt []byte, err error) 
 		err = recoverSerializeErr(x)
 	}()
 
+	serializeSafe(encode.VarInt(play_ChunkData, buf))
 	// encode position
 	serializeSafe(encode.Int(cL.Coords.X, buf))
 	serializeSafe(encode.Int(cL.Coords.Z, buf))
@@ -82,6 +86,7 @@ func encodeChunkLoad(k *kakiClient, cL event.ChunkLoad) (pkt []byte, err error) 
 	_, err = io.Copy(buf, data)                          // data
 	serializeSafe(err)
 	serializeSafe(encode.VarInt(int32(0), buf)) // n block entities
+	pkt = buf.Bytes()
 	return
 }
 

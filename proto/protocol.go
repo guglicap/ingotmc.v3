@@ -14,5 +14,5 @@ type Protocol interface {
 
 	// PacketFor accepts a sim event and returns a matching packet if found. If not, it returns an error instead.
 	// It may also return an error if packet encoding went wrong.
-	PacketFor(callback event.Event) ([]byte, error)
+	PacketFor(event event.Event) ([]byte, error)
 }

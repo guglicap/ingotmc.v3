@@ -5,3 +5,4 @@ package block
 type Block int
 
 const Air Block = 0
+const OakPlanks = 15

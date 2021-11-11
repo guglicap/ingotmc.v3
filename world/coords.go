@@ -64,8 +64,8 @@ func (cCoords ChunkCoords) RadialDistance(oc ChunkCoords) int {
 // WithinRadialDistance returns all ChunkCoords within a radius r of this one.
 func (cCoords ChunkCoords) WithinRadialDistance(r int32) (c []ChunkCoords) {
 	c = make([]ChunkCoords, 0, 2*r+1)
-	for z := cCoords.Z - r; z <= cCoords.X+r; z++ {
-		for x := cCoords.X - r; x <= cCoords.X+r; z++ {
+	for z := cCoords.Z - r; z <= cCoords.Z+r; z++ {
+		for x := cCoords.X - r; x <= cCoords.X+r; x++ {
 			c = append(c, ChunkCoords{
 				X: x,
 				Z: z,

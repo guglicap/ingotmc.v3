@@ -20,10 +20,14 @@ type kakiClient struct {
 	chunkSecSerializer
 }
 
-func New() *kakiClient {
+func New(world proto.WorldProvider, gp proto.GlobalPalette) *kakiClient {
 	return &kakiClient{
 		log:          log.New(os.Stdout, "kaki: ", log.LstdFlags|log.Lmsgprefix),
 		currentState: proto.Handshaking,
+		world:        world,
+		chunkSecSerializer: chunkSecSerializer{
+			globalPalette: gp,
+		},
 	}
 }
 
@@ -36,16 +40,20 @@ func (k *kakiClient) ActionFor(pkt []byte) (action.Action, error) {
 	return f(k, data)
 }
 
-func (k *kakiClient) PacketFor(c event.Event) ([]byte, error) {
-	switch cback := c.(type) {
+func (k *kakiClient) PacketFor(e event.Event) ([]byte, error) {
+	switch ev := e.(type) {
 	case event.Disconnect:
-		return encodeDisconnect(k, cback)
+		return encodeDisconnect(k, ev)
 	case event.AuthSuccess:
-		return encodeAuthSuccess(k, cback)
+		return encodeAuthSuccess(k, ev)
+	case event.NewPlayer:
+		return encodeJoinGame(k, ev)
 	case event.ChunkLoad:
-		return encodeChunkLoad(k, cback)
+		return encodeChunkLoad(k, ev)
+	case event.PlayerMoved:
+		return encodePlayerMoved(k, ev)
 	default:
-		return nil, proto.ErrorUnsupportedCallback
+		return nil, proto.ErrorUnsupportedEvent(e)
 	}
 }
 

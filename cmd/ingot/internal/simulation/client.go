@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"errors"
+	"fmt"
 	"github.com/guglicap/ingotmc.v3/action"
 	"github.com/guglicap/ingotmc.v3/event"
 	"github.com/guglicap/ingotmc.v3/mc"
@@ -17,7 +18,12 @@ type playerInfo struct {
 }
 
 func (cm *clientManager) waitAuth(cl Client) (playerInfo, error) {
-	ev := <-cl.Actions()
+	actions := cl.Actions()
+	ev, ok := <-actions
+	fmt.Println("got action", ev)
+	if !ok {
+		return playerInfo{}, errors.New("problem with actions chan")
+	}
 	np, ok := ev.(action.NewPlayer)
 	if !ok {
 		err := errors.New("first event was not newPlayer")
@@ -31,7 +37,7 @@ func (cm *clientManager) waitAuth(cl Client) (playerInfo, error) {
 // Client describes the ability to interact with the simulation
 type Client interface {
 	// ProcessEvent
-	ProcessEvent(event event.Event)
+	ProcessEvent(event event.Event) error
 	Actions() <-chan action.Action
 }
 

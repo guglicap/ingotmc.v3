@@ -24,6 +24,7 @@ type chunkSecSerializer struct {
 func (css *chunkSecSerializer) initPalette(chSec *proto.ChunkSection) {
 	css.nonAir = 0
 	unique := 0
+	css.palette = make(map[block.Block]int32)
 	for _, b := range chSec {
 		if b != block.Air {
 			css.nonAir++

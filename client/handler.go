@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"github.com/guglicap/ingotmc.v3/action"
 	"github.com/guglicap/ingotmc.v3/event"
 )
@@ -11,7 +12,7 @@ func (c *Client) handle(e action.Action) {
 	case action.NewConnection:
 		handleLogin(c, ev)
 	default:
-		c.actions <- e
+		c.actions <- ev
 	}
 }
 
@@ -31,4 +32,5 @@ func handleLogin(cl *Client, nc action.NewConnection) {
 		UUID:     userUUID,
 		Username: nc.Username,
 	}
+	fmt.Println("sent new player")
 }

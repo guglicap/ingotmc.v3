@@ -4,6 +4,7 @@ import (
 	client2 "github.com/guglicap/ingotmc.v3/client"
 	kaki2 "github.com/guglicap/ingotmc.v3/cmd/ingot/internal/kaki"
 	"github.com/guglicap/ingotmc.v3/cmd/ingot/internal/simulation"
+	"github.com/guglicap/ingotmc.v3/cmd/ingot/mock"
 	"net"
 	"os"
 	"os/signal"
@@ -25,7 +26,7 @@ loop:
 			break loop
 		case c := <-clients:
 			sock := client2.NewSocket(c)
-			p := kaki2.New()
+			p := kaki2.New(mock.World{}, mock.Palette{})
 			cl := client2.NewClient(sock, p, kaki2.OfflineAuthenticator)
 			go cl.Run()
 			go s.sim.SpawnPlayerFor(cl)
@@ -53,6 +54,6 @@ func (s *server) acceptClients() chan net.Conn {
 func main() {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	server := server{quit: quit, sim: simulation.New()}
+	server := server{quit: quit, sim: simulation.New(mock.World{})}
 	server.run()
 }
