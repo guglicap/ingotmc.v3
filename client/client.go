@@ -92,7 +92,7 @@ loop:
 func (c *Client) handlePacket(pkt []byte) {
 	act, err := c.proto.ActionFor(pkt)
 	if err != nil {
-		c.log.Println(fmt.Errorf("error getting action: %e", err))
+		c.log.Println(fmt.Errorf("error getting action: %s", err))
 		return
 	}
 	if act == nil { // action was handled internally by protocol

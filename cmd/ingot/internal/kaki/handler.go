@@ -15,7 +15,7 @@ func decodeFuncFor(s proto.State, id int32) decodeFunc {
 		return loginFuncFor(id)
 	default:
 		return func(k *kakiClient, _ []byte) (action.Action, error) {
-			return nil, proto.ErrorUnsupportedState(k.currentState)
+			return nil, proto.ErrorUnsupportedPacket(k.currentState, id)
 		}
 	}
 }

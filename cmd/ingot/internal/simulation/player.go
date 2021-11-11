@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"fmt"
 	"github.com/guglicap/ingotmc.v3/event"
 	"github.com/guglicap/ingotmc.v3/mc"
 	"github.com/guglicap/ingotmc.v3/world"
@@ -57,7 +56,6 @@ func (sim *Simulation) SpawnPlayerFor(cl Client) {
 		go loadChunk(c, cl)
 	}
 	wg.Wait()
-	fmt.Println("send chunk done")
 	err = cl.ProcessEvent(event.PlayerMoved{To: player.Pos})
 	if err != nil {
 		sim.log.Println(err)
