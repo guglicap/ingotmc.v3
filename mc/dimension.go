@@ -1,4 +1,4 @@
-package world
+package mc
 
 // Dimension represents a world dimension.
 // One of: nether (-1), overworld (0), end (1)

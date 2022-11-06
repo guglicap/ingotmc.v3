@@ -1,18 +1,21 @@
-package world
+package mc
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
-// vector3 is more of a math thing, don't know why it's here.
-type vector3 struct {
+// Vector3 is more of a math thing, don't know why it's here.
+type Vector3 struct {
 	X, Y, Z float64
 }
 
-func (v vector3) Dot(x vector3) float64 {
+func (v Vector3) Dot(x Vector3) float64 {
 	return v.X*x.X + v.Y*x.Y + v.Z*x.Z
 }
 
-func (v vector3) Add(o vector3) vector3 {
-	return vector3{
+func (v Vector3) Add(o Vector3) Vector3 {
+	return Vector3{
 		v.X + o.X,
 		v.Y + o.Y,
 		v.Z + o.Z,
@@ -20,13 +23,21 @@ func (v vector3) Add(o vector3) vector3 {
 }
 
 // Coords is an (x,y,z) float vector.
-type Coords vector3
+type Coords Vector3
 
-// GetChunkCoords returns the ChunkCoords of the chunk enclosing this position in space.
-func (c Coords) GetChunkCoords() ChunkCoords {
+// ToChunkCoords returns the ChunkCoords of the chunk enclosing this position in space.
+func (c Coords) ToChunkCoords() ChunkCoords {
 	return ChunkCoords{
 		int32(c.X) >> 4,
 		int32(c.Z) >> 4,
+	}
+}
+
+func (c Coords) ToBlockCoords() BlockCoords {
+	return BlockCoords{
+		X: int32(math.Ceil(c.X)),
+		Y: int32(math.Ceil(c.Y)),
+		Z: int32(math.Ceil(c.Z)),
 	}
 }
 
@@ -48,6 +59,10 @@ type ChunkCoords struct {
 	X, Z int32
 }
 
+func (cCoords ChunkCoords) String() string {
+	return fmt.Sprintf("(%d, %d)", cCoords.X, cCoords.Z)
+}
+
 // RadialDistance returns the distance to another chunk.
 // It is used to determine which chunk should be loaded given a render radius (distance).
 // e.g. the following chunks ( o ) should be within RadialDistance 1 of the center chunk ( x )
@@ -61,12 +76,10 @@ func (cCoords ChunkCoords) RadialDistance(oc ChunkCoords) int {
 	))
 }
 
-// WithinRadialDistance returns all ChunkCoords within a radius r of this one.
-func (cCoords ChunkCoords) WithinRadialDistance(r int32) (c []ChunkCoords) {
-	c = make([]ChunkCoords, 0, 2*r+1)
-	for z := cCoords.Z - r; z <= cCoords.Z+r; z++ {
-		for x := cCoords.X - r; x <= cCoords.X+r; x++ {
-			c = append(c, ChunkCoords{
+func (cCoords ChunkCoords) AllWithinRadius(r int32) (res []ChunkCoords) {
+	for x := cCoords.X - r; x <= cCoords.X+r; x++ {
+		for z := cCoords.Z - r;  z <= cCoords.Z+r; z++ {
+			res = append(res, ChunkCoords{
 				X: x,
 				Z: z,
 			})

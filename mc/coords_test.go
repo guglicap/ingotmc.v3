@@ -1,17 +1,16 @@
 package mc
 
 import (
-	"github.com/guglicap/ingotmc.v3/world"
 	"testing"
 )
 
 func TestChunkCoords_DistanceTo(t *testing.T) {
 	type fields struct {
-		X int64
-		Z int64
+		X int32
+		Z int32
 	}
 	type args struct {
-		oc world.ChunkCoords
+		oc ChunkCoords
 	}
 	tests := []struct {
 		name   string
@@ -19,11 +18,11 @@ func TestChunkCoords_DistanceTo(t *testing.T) {
 		args   args
 		want   int
 	}{
-		{"distance", fields{0, 0}, args{world.ChunkCoords{-3, 3}}, 3},
+		{"distance", fields{0, 0}, args{ChunkCoords{-3, 3}}, 3},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cc := world.ChunkCoords{
+			cc := ChunkCoords{
 				X: tt.fields.X,
 				Z: tt.fields.Z,
 			}

@@ -1,4 +1,4 @@
-package world
+package mc
 
 type Level string
 

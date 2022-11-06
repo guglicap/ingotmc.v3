@@ -1,4 +1,4 @@
-package world
+package mc
 
 import (
 	"crypto/sha256"

@@ -1,7 +1,4 @@
-// Package mc is likely a bad idea.
-// It's basically a catch-all package for data-types that don't have their own package yet,
-// because they're needed but I haven't implemented everything yet.
-// It should be temporary and kept as empty as possible. In theory.
+// Package mc contains type defitions related to objects which permeate the whole minecraft domain.
 package mc
 
 import "encoding/binary"

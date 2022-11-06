@@ -1,4 +1,4 @@
-package world
+package mc
 
 // Gamemode represents a game mode.
 // TODO: implement hardcore flag.
