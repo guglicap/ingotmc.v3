@@ -24,7 +24,7 @@ func New(w world.Provider) *Simulation {
 		clientManager:  clientManager{clients: make(map[mc.UUID]Client)},
 		PlayerStorage:  playerStore{rootPath: "srv/player"},
 		spawnPos:       world.Coords{0.0, 16.0, 0.0},
-		renderDistance: 16,
+		renderDistance: 8,
 		world:          w,
 	}
 }
